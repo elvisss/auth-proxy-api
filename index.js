@@ -1,4 +1,5 @@
 const express = require('express');
+const helmet = require('helmet');
 const passport = require('passport');
 const session = require('express-session');
 const boom = require('@hapi/boom');
@@ -8,6 +9,8 @@ const axios = require('axios');
 const { config } = require('./config');
 
 const app = express();
+
+app.use(helmet());
 
 // body parser
 app.use(express.json());
