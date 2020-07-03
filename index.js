@@ -1,5 +1,6 @@
 const express = require('express');
 const passport = require('passport');
+const session = require('express-session');
 const boom = require('@hapi/boom');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
@@ -12,9 +13,33 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(
+  session({
+    secret: config.sessionSecret,
+    resave: true,
+    saveUninitialized: true,
+  }),
+);
+app.use(passport.initialize());
+app.use(passport.session());
 
-//  Basic strategy
+//  Basic Strategy
 require('./utils/auth/strategies/basic');
+
+// OAUTH Strategy
+require('./utils/auth/strategies/oauth');
+
+// Google Strategy
+require('./utils/auth/strategies/google');
+
+// Linkedin Strategy
+require('./utils/auth/strategies/linkedin');
+
+// Twitter Strategy
+require('./utils/auth/strategies/twitter');
+
+// Facebook Strategy
+require('./utils/auth/strategies/facebook');
 
 const THIRTY_DAYS_IN_SEC = 2592000000;
 const TWO_HOURS_IN_SEC = 7200000;
@@ -111,6 +136,126 @@ app.delete('/user-movies/:userMovieId', async (req, res, next) => {
     next(error);
   }
 });
+
+app.get(
+  '/auth/google-oauth',
+  passport.authenticate('google-oauth', {
+    scope: ['email', 'profile', 'openid'],
+  }),
+);
+
+app.get(
+  '/auth/google-oauth/callback',
+  passport.authenticate('google-oauth', { session: false }),
+  (req, res, next) => {
+    if (!req.user) {
+      next(boom.unauthorized());
+    }
+
+    const { token, ...user } = req.user;
+
+    res.cookie('token', token, {
+      httpOnly: !config.dev,
+      secure: !config.dev,
+    });
+
+    res.status(200).json(user);
+  },
+);
+
+app.get(
+  '/auth/google',
+  passport.authenticate('google', {
+    scope: ['email', 'profile', 'openid'],
+  }),
+);
+
+app.get(
+  '/auth/google/callback',
+  passport.authenticate('google', { session: false }),
+  (req, res, next) => {
+    if (!req.user) {
+      next(boom.unauthorized());
+    }
+
+    const { token, ...user } = req.user;
+
+    res.cookie('token', token, {
+      httpOnly: !config.dev,
+      secure: !config.dev,
+    });
+
+    res.status(200).json(user);
+  },
+);
+
+app.get(
+  '/auth/linkedin',
+  passport.authenticate('linkedin', {
+    state: 'DCEeFWf45A53sdfKef424',
+  }),
+);
+
+app.get(
+  '/auth/linkedin/callback',
+  passport.authenticate('linkedin', { session: false }),
+  (req, res, next) => {
+    if (!req.user) {
+      next(boom.unauthorized());
+    }
+
+    const { token, ...user } = req.user;
+
+    res.cookie('token', token, {
+      httpOnly: !config.dev,
+      secure: !config.dev,
+    });
+
+    res.status(200).json(user);
+  },
+);
+
+app.get('/auth/twitter', passport.authenticate('twitter'));
+
+app.get(
+  '/auth/twitter/callback',
+  passport.authenticate('twitter', { session: false }),
+  (req, res, next) => {
+    if (!req.user) {
+      next(boom.unauthorized());
+    }
+
+    const { token, ...user } = req.user;
+
+    res.cookie('token', token, {
+      httpOnly: !config.dev,
+      secure: !config.dev,
+    });
+
+    res.status(200).json(user);
+  },
+);
+
+app.get('/auth/facebook', passport.authenticate('facebook'));
+
+app.get(
+  '/auth/facebook/callback',
+  passport.authenticate('facebook', { session: false }),
+  (req, res, next) => {
+    if (!req.user) {
+      next(boom.unauthorized());
+    }
+
+    const { token, ...user } = req.user;
+
+    res.cookie('token', token, {
+      httpOnly: !config.dev,
+      secure: !config.dev,
+    });
+
+    res.status(200).json(user);
+  },
+);
 
 app.listen(config.port, function () {
   console.log(`Listening http://localhost:${config.port}`);
